@@ -254,13 +254,6 @@ type InfoGraphStatus struct {
 	Supports_d_type     string `json:"supports_d_type"`
 }
 
-// InfoRegistry describes the host's registry information
-type InfoRegistry struct {
-	Search   []string `json:"search"`
-	Insecure []string `json:"insecure"`
-	Blocked  []string `json:"blocked"`
-}
-
 // InfoStore describes the host's storage informatoin
 type InfoStore struct {
 	Containers           int64           `json:"containers"`
@@ -282,10 +275,11 @@ type InfoPodmanBinary struct {
 
 // PodmanInfo describes the Podman host and build
 type PodmanInfo struct {
-	Host       InfoHost         `json:"host"`
-	Registries InfoRegistry     `json:"registries"`
-	Store      InfoStore        `json:"store"`
-	Podman     InfoPodmanBinary `json:"podman"`
+	Host                InfoHost         `json:"host"`
+	Registries          []string         `json:"registries"`
+	Insecure_registries []string         `json:"insecure_registries"`
+	Store               InfoStore        `json:"store"`
+	Podman              InfoPodmanBinary `json:"podman"`
 }
 
 // Sockets describes sockets location for a container
@@ -359,6 +353,7 @@ type Create struct {
 	MemorySwap             *string   `json:"memorySwap,omitempty"`
 	MemorySwappiness       *int64    `json:"memorySwappiness,omitempty"`
 	Name                   *string   `json:"name,omitempty"`
+	Net                    *string   `json:"net,omitempty"`
 	Network                *string   `json:"network,omitempty"`
 	NoHosts                *bool     `json:"noHosts,omitempty"`
 	OomKillDisable         *bool     `json:"oomKillDisable,omitempty"`
@@ -2537,48 +2532,6 @@ func (m TagImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ str
 	}, nil
 }
 
-// UntagImage takes the name or ID of an image in local storage as well as the
-// tag name to be removed.  If the image cannot be found, an
-// [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of
-// the image is returned on success.
-type UntagImage_methods struct{}
-
-func UntagImage() UntagImage_methods { return UntagImage_methods{} }
-
-func (m UntagImage_methods) Call(c *varlink.Connection, name_in_ string, tag_in_ string) (image_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, tag_in_)
-	if err_ != nil {
-		return
-	}
-	image_out_, _, err_ = receive()
-	return
-}
-
-func (m UntagImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, tag_in_ string) (func() (string, uint64, error), error) {
-	var in struct {
-		Name string `json:"name"`
-		Tag  string `json:"tag"`
-	}
-	in.Name = name_in_
-	in.Tag = tag_in_
-	receive, err := c.Send("io.podman.UntagImage", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (image_out_ string, flags uint64, err error) {
-		var out struct {
-			Image string `json:"image"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			err = Dispatch_Error(err)
-			return
-		}
-		image_out_ = out.Image
-		return
-	}, nil
-}
-
 // RemoveImage takes the name or ID of an image as well as a boolean that determines if containers using that image
 // should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
 // ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
@@ -2628,7 +2581,7 @@ func (m RemoveImage_methods) Send(c *varlink.Connection, flags uint64, name_in_ 
 }
 
 // RemoveImageWithResponse takes the name or ID of an image as well as a boolean that determines if containers using that image
-// should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The response is
+// should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The reponse is
 // in the form of a RemoveImageResponse .
 type RemoveImageWithResponse_methods struct{}
 
@@ -3710,52 +3663,6 @@ func (m ImageExists_methods) Send(c *varlink.Connection, flags uint64, name_in_ 
 			return
 		}
 		exists_out_ = out.Exists
-		return
-	}, nil
-}
-
-// ImageTree returns the image tree for the provided image name or ID
-// #### Example
-// ~~~
-// $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageTree '{"name": "alpine"}'
-// {
-//   "tree":  "Image ID: e7d92cdc71fe\nTags:     [docker.io/library/alpine:latest]\nSize:     5.861MB\nImage Layers\n└──  ID: 5216338b40a7 Size: 5.857MB Top Layer of: [docker.io/library/alpine:latest]\n"
-// }
-// ~~~
-type ImageTree_methods struct{}
-
-func ImageTree() ImageTree_methods { return ImageTree_methods{} }
-
-func (m ImageTree_methods) Call(c *varlink.Connection, name_in_ string, whatRequires_in_ bool) (tree_out_ string, err_ error) {
-	receive, err_ := m.Send(c, 0, name_in_, whatRequires_in_)
-	if err_ != nil {
-		return
-	}
-	tree_out_, _, err_ = receive()
-	return
-}
-
-func (m ImageTree_methods) Send(c *varlink.Connection, flags uint64, name_in_ string, whatRequires_in_ bool) (func() (string, uint64, error), error) {
-	var in struct {
-		Name         string `json:"name"`
-		WhatRequires bool   `json:"whatRequires"`
-	}
-	in.Name = name_in_
-	in.WhatRequires = whatRequires_in_
-	receive, err := c.Send("io.podman.ImageTree", in, flags)
-	if err != nil {
-		return nil, err
-	}
-	return func() (tree_out_ string, flags uint64, err error) {
-		var out struct {
-			Tree string `json:"tree"`
-		}
-		flags, err = receive(&out)
-		if err != nil {
-			err = Dispatch_Error(err)
-			return
-		}
-		tree_out_ = out.Tree
 		return
 	}, nil
 }
@@ -5017,7 +4924,6 @@ type iopodmanInterface interface {
 	HistoryImage(c VarlinkCall, name_ string) error
 	PushImage(c VarlinkCall, name_ string, tag_ string, compress_ bool, format_ string, removeSignatures_ bool, signBy_ string) error
 	TagImage(c VarlinkCall, name_ string, tagged_ string) error
-	UntagImage(c VarlinkCall, name_ string, tag_ string) error
 	RemoveImage(c VarlinkCall, name_ string, force_ bool) error
 	RemoveImageWithResponse(c VarlinkCall, name_ string, force_ bool) error
 	SearchImages(c VarlinkCall, query_ string, limit_ *int64, filter_ ImageSearchFilter) error
@@ -5041,7 +4947,6 @@ type iopodmanInterface interface {
 	GetPodStats(c VarlinkCall, name_ string) error
 	GetPodsByStatus(c VarlinkCall, statuses_ []string) error
 	ImageExists(c VarlinkCall, name_ string) error
-	ImageTree(c VarlinkCall, name_ string, whatRequires_ bool) error
 	ContainerExists(c VarlinkCall, name_ string) error
 	ContainerCheckpoint(c VarlinkCall, name_ string, keep_ bool, leaveRunning_ bool, tcpEstablished_ bool) error
 	ContainerRestore(c VarlinkCall, name_ string, keep_ bool, tcpEstablished_ bool) error
@@ -5508,14 +5413,6 @@ func (c *VarlinkCall) ReplyTagImage(image_ string) error {
 	return c.Reply(&out)
 }
 
-func (c *VarlinkCall) ReplyUntagImage(image_ string) error {
-	var out struct {
-		Image string `json:"image"`
-	}
-	out.Image = image_
-	return c.Reply(&out)
-}
-
 func (c *VarlinkCall) ReplyRemoveImage(image_ string) error {
 	var out struct {
 		Image string `json:"image"`
@@ -5699,14 +5596,6 @@ func (c *VarlinkCall) ReplyImageExists(exists_ int64) error {
 		Exists int64 `json:"exists"`
 	}
 	out.Exists = exists_
-	return c.Reply(&out)
-}
-
-func (c *VarlinkCall) ReplyImageTree(tree_ string) error {
-	var out struct {
-		Tree string `json:"tree"`
-	}
-	out.Tree = tree_
 	return c.Reply(&out)
 }
 
@@ -6344,14 +6233,6 @@ func (s *VarlinkInterface) TagImage(c VarlinkCall, name_ string, tagged_ string)
 	return c.ReplyMethodNotImplemented("io.podman.TagImage")
 }
 
-// UntagImage takes the name or ID of an image in local storage as well as the
-// tag name to be removed.  If the image cannot be found, an
-// [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of
-// the image is returned on success.
-func (s *VarlinkInterface) UntagImage(c VarlinkCall, name_ string, tag_ string) error {
-	return c.ReplyMethodNotImplemented("io.podman.UntagImage")
-}
-
 // RemoveImage takes the name or ID of an image as well as a boolean that determines if containers using that image
 // should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
 // ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
@@ -6367,7 +6248,7 @@ func (s *VarlinkInterface) RemoveImage(c VarlinkCall, name_ string, force_ bool)
 }
 
 // RemoveImageWithResponse takes the name or ID of an image as well as a boolean that determines if containers using that image
-// should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The response is
+// should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The reponse is
 // in the form of a RemoveImageResponse .
 func (s *VarlinkInterface) RemoveImageWithResponse(c VarlinkCall, name_ string, force_ bool) error {
 	return c.ReplyMethodNotImplemented("io.podman.RemoveImageWithResponse")
@@ -6709,18 +6590,6 @@ func (s *VarlinkInterface) GetPodsByStatus(c VarlinkCall, statuses_ []string) er
 // ~~~
 func (s *VarlinkInterface) ImageExists(c VarlinkCall, name_ string) error {
 	return c.ReplyMethodNotImplemented("io.podman.ImageExists")
-}
-
-// ImageTree returns the image tree for the provided image name or ID
-// #### Example
-// ~~~
-// $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageTree '{"name": "alpine"}'
-// {
-//   "tree":  "Image ID: e7d92cdc71fe\nTags:     [docker.io/library/alpine:latest]\nSize:     5.861MB\nImage Layers\n└──  ID: 5216338b40a7 Size: 5.857MB Top Layer of: [docker.io/library/alpine:latest]\n"
-// }
-// ~~~
-func (s *VarlinkInterface) ImageTree(c VarlinkCall, name_ string, whatRequires_ bool) error {
-	return c.ReplyMethodNotImplemented("io.podman.ImageTree")
 }
 
 // ContainerExists takes a full or partial container ID or name and returns an int as to
@@ -7319,17 +7188,6 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 		}
 		return s.iopodmanInterface.TagImage(VarlinkCall{call}, in.Name, in.Tagged)
 
-	case "UntagImage":
-		var in struct {
-			Name string `json:"name"`
-			Tag  string `json:"tag"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.iopodmanInterface.UntagImage(VarlinkCall{call}, in.Name, in.Tag)
-
 	case "RemoveImage":
 		var in struct {
 			Name  string `json:"name"`
@@ -7567,17 +7425,6 @@ func (s *VarlinkInterface) VarlinkDispatch(call varlink.Call, methodname string)
 			return call.ReplyInvalidParameter("parameters")
 		}
 		return s.iopodmanInterface.ImageExists(VarlinkCall{call}, in.Name)
-
-	case "ImageTree":
-		var in struct {
-			Name         string `json:"name"`
-			WhatRequires bool   `json:"whatRequires"`
-		}
-		err := call.GetParameters(&in)
-		if err != nil {
-			return call.ReplyInvalidParameter("parameters")
-		}
-		return s.iopodmanInterface.ImageTree(VarlinkCall{call}, in.Name, in.WhatRequires)
 
 	case "ContainerExists":
 		var in struct {
@@ -8149,13 +7996,6 @@ type InfoGraphStatus (
     supports_d_type: string
 )
 
-# InfoRegistry describes the host's registry information
-type InfoRegistry (
-    search: []string,
-    insecure: []string,
-    blocked: []string
-)
-
 # InfoStore describes the host's storage informatoin
 type InfoStore (
     containers: int,
@@ -8178,7 +8018,8 @@ type InfoPodmanBinary (
 # PodmanInfo describes the Podman host and build
 type PodmanInfo (
     host: InfoHost,
-    registries: InfoRegistry,
+    registries: []string,
+    insecure_registries: []string,
     store: InfoStore,
     podman: InfoPodmanBinary
 )
@@ -8254,6 +8095,7 @@ type Create (
     memorySwap: ?string,
     memorySwappiness: ?int,
     name: ?string,
+    net: ?string,
     network: ?string,
     noHosts: ?bool,
     oomKillDisable: ?bool,
@@ -8769,12 +8611,6 @@ method PushImage(name: string, tag: string, compress: bool, format: string, remo
 # be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
 method TagImage(name: string, tagged: string) -> (image: string)
 
-# UntagImage takes the name or ID of an image in local storage as well as the
-# tag name to be removed.  If the image cannot be found, an
-# [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of
-# the image is returned on success.
-method UntagImage(name: string, tag: string) -> (image: string)
-
 # RemoveImage takes the name or ID of an image as well as a boolean that determines if containers using that image
 # should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
 # ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).
@@ -8788,7 +8624,7 @@ method UntagImage(name: string, tag: string) -> (image: string)
 method RemoveImage(name: string, force: bool) -> (image: string)
 
 # RemoveImageWithResponse takes the name or ID of an image as well as a boolean that determines if containers using that image
-# should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The response is
+# should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The reponse is
 # in the form of a RemoveImageResponse .
 method RemoveImageWithResponse(name: string, force: bool) -> (response: RemoveImageResponse)
 
@@ -9091,16 +8927,6 @@ method GetPodsByStatus(statuses: []string) -> (pods: []string)
 # }
 # ~~~
 method ImageExists(name: string) -> (exists: int)
-
-# ImageTree returns the image tree for the provided image name or ID
-# #### Example
-# ~~~
-# $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageTree '{"name": "alpine"}'
-# {
-#   "tree":  "Image ID: e7d92cdc71fe\nTags:     [docker.io/library/alpine:latest]\nSize:     5.861MB\nImage Layers\n└──  ID: 5216338b40a7 Size: 5.857MB Top Layer of: [docker.io/library/alpine:latest]\n"
-# }
-# ~~~
-method ImageTree(name: string, whatRequires: bool) -> (tree: string)
 
 # ContainerExists takes a full or partial container ID or name and returns an int as to
 # whether the container exists in local storage.  A result of 0 means the container does
