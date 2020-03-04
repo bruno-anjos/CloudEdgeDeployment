@@ -14,6 +14,6 @@ func Init(address string) (*varlink.Connection, error) {
 }
 
 func GetPodmanVersion(conn *varlink.Connection) string {
-	version, _, _, _, _, _, _ := GetVersion().Call(conn)
+	version, goVersion, commitVersion, _, _, _, _ := GetVersion().Call(conn)
 	return version
 }

@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	address := "unix:/run/podman/io.podman"
+	address := "unix:/run/user/1000/podman/io.podman"
 	conn, err := executor.Init(address)
 
 	if err != nil {
