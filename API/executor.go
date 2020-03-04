@@ -6,13 +6,12 @@ import (
 	"os"
 )
 
-func Init(address string) (*varlink.Connection, error) {
+func PodmanInit(address string) *varlink.Connection {
 	conn, err := varlink.NewConnection(address)
-	if err != nil {
-		return nil, err
-	}
 
-	return conn, nil
+	ifExistsPrintErrorAndQuit(err)
+
+	return conn
 }
 
 func PodmanPullImage(conn *varlink.Connection, image string) {
@@ -24,7 +23,7 @@ func PodmanPullImage(conn *varlink.Connection, image string) {
 	fmt.Println(reply.Logs)
 }
 
-func GetPodmanVersion(conn *varlink.Connection) string {
+func GetPodmanVersion(conn *varlink.Connection) {
 	version, goVersion, commitVersion, builtVersion, osArch, remoteApiVersion, err := GetVersion().Call(conn)
 
 	ifExistsPrintErrorAndQuit(err)
@@ -35,13 +34,13 @@ func GetPodmanVersion(conn *varlink.Connection) string {
 
 func ifExistsPrintError(err error) {
 	if err != nil {
-		fmt.Errorf("%s", err)
+		_ = fmt.Errorf("%s", err)
 	}
 }
 
 func ifExistsPrintErrorAndQuit(err error) {
 	if err != nil {
-		fmt.Errorf("%s", err)
+		_ = fmt.Errorf("%s", err)
 		os.Exit(1)
 	}
 }
