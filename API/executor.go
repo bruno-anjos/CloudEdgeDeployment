@@ -45,21 +45,25 @@ func CheckDependencies() {
 	ifExistsPrintError(err)
 
 	if !status.Running {
-		fmt.Errorf("Podman API is not running!")
+		printError("Podman API is not running!")
 	} else {
 		fmt.Println("Podman API is running...")
 	}
 }
 
+func printError(errorString string) {
+	_, _ = fmt.Fprintln(os.Stderr, errorString)
+}
+
 func ifExistsPrintError(err error) {
 	if err != nil {
-		_ = fmt.Errorf("%s", err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 	}
 }
 
 func ifExistsPrintErrorAndQuit(err error) {
 	if err != nil {
-		_ = fmt.Errorf("%s", err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
