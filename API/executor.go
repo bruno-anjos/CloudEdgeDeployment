@@ -1,8 +1,10 @@
 package API
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/varlink/go/varlink"
+	"log"
 	"os"
 	"os/exec"
 )
@@ -47,28 +49,16 @@ func CheckDependencies() {
 
 func checkDependency(commandName string, args ...string) {
 	cmd := exec.Command(commandName, args...)
-	out, err := cmd.Output()
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
 	ifExistsPrintErrorAndQuit(err)
-	err = cmd.Run()
-	ifExistsPrintErrorAndQuit(err)
 
-	fmt.Printf("[SUCCESS] %s seems to be installed on this machine: %s\n", commandName, string(out))
-}
-
-func printError(errorString string) {
-	_, _ = fmt.Fprintln(os.Stderr, errorString)
-}
-
-func ifExistsPrintError(err error) {
-	if err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-	}
+	fmt.Printf("[SUCCESS] %s seems to be installed on this machine: %s\n", commandName, out.String())
 }
 
 func ifExistsPrintErrorAndQuit(err error) {
 	if err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		fmt.Println("Exiting due to error...")
-		os.Exit(1)
+		log.Fatalln(err)
 	}
 }
