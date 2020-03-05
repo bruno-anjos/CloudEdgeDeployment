@@ -11,9 +11,21 @@ import (
 const (
 	podmanCommandName = "podman"
 	podmanVersionFlag = "-v"
+
 	varlinkCommandName = "varlink"
 	varlinkVersionFlag = "-V"
+
+	podmanAPICommand = "podman"
+	podmanAPIVarlinkFlag = "varlink"
+	podmanAPITimeoutFlag = "-t 0"
 )
+
+func StartPodmanAPI() *varlink.Connection {
+	out, err := runCommandWithStdout(podmanAPICommand, podmanAPIVarlinkFlag, podmanAPITimeoutFlag)
+	ifExistsPrintErrorAndQuit(err)
+
+	fmt.Printf("Start PodmanAPI: %s\n", out)
+}
 
 func PodmanInit(address string) *varlink.Connection {
 	conn, err := varlink.NewConnection(address)
@@ -47,13 +59,18 @@ func CheckDependencies() {
 }
 
 func checkDependency(commandName string, args ...string) {
+	out, err := runCommandWithStdout(commandName, args...)
+	ifExistsPrintErrorAndQuit(err)
+	fmt.Printf("[SUCCESS] %s seems to be installed on this machine: %s", commandName, out)
+}
+
+func runCommandWithStdout(commandName string, args ...string) (string, error){
 	cmd := exec.Command(commandName, args...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
-	ifExistsPrintErrorAndQuit(err)
 
-	fmt.Printf("[SUCCESS] %s seems to be installed on this machine: %s", commandName, out.String())
+	return out.String(), err
 }
 
 func ifExistsPrintErrorAndQuit(err error) {
