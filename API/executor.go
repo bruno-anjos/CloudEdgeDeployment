@@ -2,7 +2,6 @@ package API
 
 import (
 	"fmt"
-	"github.com/danawoodman/systemservice"
 	"github.com/varlink/go/varlink"
 	"os"
 	"os/exec"
