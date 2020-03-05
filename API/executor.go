@@ -49,7 +49,8 @@ func checkDependency(commandName string, args ...string) {
 	cmd := exec.Command(commandName, args...)
 	err := cmd.Run()
 	ifExistsPrintErrorAndQuit(err)
-	out, _ := cmd.Output()
+	out, err := cmd.Output()
+	ifExistsPrintErrorAndQuit(err)
 
 	fmt.Printf("[SUCCESS] %s seems to be installed on this machine: %s\n", commandName, string(out))
 }
