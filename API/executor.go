@@ -2,6 +2,7 @@ package API
 
 import (
 	"fmt"
+	"github.com/danawoodman/systemservice"
 	"github.com/varlink/go/varlink"
 	"os"
 )
@@ -30,6 +31,24 @@ func GetPodmanVersion(conn *varlink.Connection) {
 
 	fmt.Printf("version: %s, golang: %s, commit: %s, built: %s, osArch: %s, remoteAPI: %d\n",
 		version, goVersion, commitVersion, builtVersion, osArch, remoteApiVersion)
+}
+
+func CheckDependencies() {
+	cmd := systemservice.ServiceCommand{
+		Name: "io.podman",
+	}
+
+	service := systemservice.New(cmd)
+
+	status, err := service.Status()
+
+	ifExistsPrintError(err)
+
+	if !status.Running {
+		fmt.Errorf("Podman API is not running!")
+	} else {
+		fmt.Println("Podman API is running...")
+	}
 }
 
 func ifExistsPrintError(err error) {
