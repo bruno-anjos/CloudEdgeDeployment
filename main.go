@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/bruno-anjos/CloudEdgeDeployment/API"
+	"./API"
 )
 
 func main() {
 	address := "unix:/run/user/1000/podman/io.podman"
 	API.CheckDependencies()
+	API.StartPodmanAPI()
 
 	conn := API.PodmanInit(address)
 	API.GetPodmanVersion(conn)
