@@ -6,9 +6,9 @@ import (
 
 func main() {
 	address := "unix:/run/user/1000/podman/io.podman"
-	conn := API.PodmanInit(address)
-
 	API.CheckDependencies()
+
+	conn := API.PodmanInit(address)
 	API.GetPodmanVersion(conn)
 	API.PodmanPullImage(conn, "redis")
 }
