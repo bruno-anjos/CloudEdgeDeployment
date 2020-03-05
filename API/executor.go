@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/varlink/go/varlink"
 	"log"
-	"os"
 	"os/exec"
 )
 
