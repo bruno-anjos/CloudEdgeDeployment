@@ -10,6 +10,8 @@ import (
 const (
 	podmanCommandName = "podman"
 	podmanVersionFlag = "-v"
+	varlinkCommandName = "varlink"
+	varlinkVersionFlag = "-V"
 )
 
 func PodmanInit(address string) *varlink.Connection {
@@ -39,9 +41,17 @@ func GetPodmanVersion(conn *varlink.Connection) {
 }
 
 func CheckDependencies() {
-	podmanCmd := exec.Command(podmanCommandName, podmanVersionFlag)
-	err := podmanCmd.Run()
+	checkDependency(podmanCommandName, podmanVersionFlag)
+	checkDependency(varlinkCommandName, varlinkVersionFlag)
+}
+
+func checkDependency(commandName string, args ...string) {
+	cmd := exec.Command(commandName, args...)
+	err := cmd.Run()
 	ifExistsPrintErrorAndQuit(err)
+	out, _ := cmd.Output()
+
+	fmt.Printf("[SUCCESS] %s seems to be installed on this machine: %s\n", commandName, out)
 }
 
 func printError(errorString string) {
