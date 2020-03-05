@@ -5,6 +5,12 @@ import (
 	"github.com/danawoodman/systemservice"
 	"github.com/varlink/go/varlink"
 	"os"
+	"os/exec"
+)
+
+const (
+	podmanCommandName = "podman"
+	podmanVersionFlag = "-v"
 )
 
 func PodmanInit(address string) *varlink.Connection {
@@ -34,21 +40,9 @@ func GetPodmanVersion(conn *varlink.Connection) {
 }
 
 func CheckDependencies() {
-	cmd := systemservice.ServiceCommand{
-		Name: "io.podman",
-	}
-
-	service := systemservice.New(cmd)
-
-	status, err := service.Status()
-
-	ifExistsPrintError(err)
-
-	if !status.Running {
-		printError("Podman API is not running!")
-	} else {
-		fmt.Println("Podman API is running...")
-	}
+	podmanCmd := exec.Command(podmanCommandName, podmanVersionFlag)
+	err := podmanCmd.Run()
+	ifExistsPrintErrorAndQuit(err)
 }
 
 func printError(errorString string) {
