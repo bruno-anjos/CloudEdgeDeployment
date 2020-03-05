@@ -51,7 +51,7 @@ func checkDependency(commandName string, args ...string) {
 	ifExistsPrintErrorAndQuit(err)
 	out, _ := cmd.Output()
 
-	fmt.Printf("[SUCCESS] %s seems to be installed on this machine: %s\n", commandName, out)
+	fmt.Printf("[SUCCESS] %s seems to be installed on this machine: %s\n", commandName, string(out))
 }
 
 func printError(errorString string) {
