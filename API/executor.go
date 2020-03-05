@@ -67,6 +67,7 @@ func ifExistsPrintError(err error) {
 func ifExistsPrintErrorAndQuit(err error) {
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
+		fmt.Println("Exiting due to error...")
 		os.Exit(1)
 	}
 }
